@@ -23,6 +23,15 @@ app.use(express.json());
 // Serve static frontend files
 app.use(express.static(path.join(process.cwd(), 'dist')));
 
+app.get('/api/health', async (req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({ status: 'ok', database: 'connected' });
+  } catch (e) {
+    res.status(500).json({ status: 'error', database: 'disconnected', error: e.message });
+  }
+});
+
 // Default configuration to seed if database is empty
 const defaultData = {
   appTitle: 'بوابة تقييم الفنون البصرية',
