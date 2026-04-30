@@ -7,7 +7,7 @@ services:
     startCommand: npm start
     envVars:
       - key: DATABASE_URL
-        fromContext: parameter
+        value: postgresql://postgres:.Bap!4yn*rWkfnC@db.jkbyuqmyxvtdactidyxe.supabase.co:5432/postgres
       - key: NODE_VERSION
         value: 20
       - key: PORT
