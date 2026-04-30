@@ -78,16 +78,35 @@ export default function App() {
 
 
   useEffect(() => {
-    fetch('/api/config').then(r => r.json()).then(setGlobalConfig).catch(console.error);
+    const fetchConfig = async () => {
+      try {
+        const r = await fetch('/api/config');
+        if (!r.ok) throw new Error('Failed to load config');
+        const data = await r.json();
+        setGlobalConfig(data);
+      } catch (e) {
+        console.error('Config fetch error:', e);
+      }
+    };
+
     const fetchStudents = async () => {
       try {
         const res = await fetch('/api/students');
+        if (!res.ok) throw new Error('Failed to load students');
         const data = await res.json();
-        setStudents(data);
+        if (Array.isArray(data)) {
+          setStudents(data);
+        } else {
+          console.error('Students data is not an array:', data);
+          setStudents([]);
+        }
       } catch (e) {
-        console.error(e);
+        console.error('Students fetch error:', e);
+        setStudents([]);
       }
     };
+
+    fetchConfig();
     fetchStudents();
   }, []);
 
@@ -968,7 +987,7 @@ export default function App() {
               )}
 
               <div className="space-y-2 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
-                {students.filter(s => !selectedGrade || s.gradeId === selectedGrade || !s.gradeId).map(s => (
+                {Array.isArray(students) && students.filter(s => !selectedGrade || s.gradeId === selectedGrade || !s.gradeId).map(s => (
                   <div key={s.id} className="flex items-center justify-between p-3 border border-gray-100 rounded-xl hover:border-indigo-100 transition-colors group">
                     <span className="font-bold text-gray-700 text-sm">{s.name}</span>
                     {isEditMode && (
@@ -982,9 +1001,9 @@ export default function App() {
                     )}
                   </div>
                 ))}
-                {students.filter(s => !selectedGrade || s.gradeId === selectedGrade || !s.gradeId).length === 0 && (
+                {(!Array.isArray(students) || students.filter(s => !selectedGrade || s.gradeId === selectedGrade || !s.gradeId).length === 0) && (
                   <div className="text-center py-8 text-gray-400 text-sm font-semibold">
-                    لا يوجد طلاب مسجلين
+                    لا يوجد طلاب مسجلين أو حدث خطأ في التحميل
                   </div>
                 )}
               </div>
