@@ -180,18 +180,6 @@ const defaultData = {
         { id: 713, text: 'يوظف الألوان الرقمية بإبداع دون مبالغة', max: 4 },
         { id: 714, text: 'يُظهر مهارة في حفظ العمل وتنسيقه للعرض', max: 4 },
         { id: 715, text: 'ينظم ملف إنجاز رقمي يوثق مراحل العمل', max: 4 }
-      ],
-      grade_int1_saudi_arts: [
-        { id: 551, text: 'يتعرف على تاريخ الفن السعودي المعاصر', max: 4 },
-        { id: 552, text: 'يميّز الأساليب الفنية في المنطقة العربية', max: 4 },
-        { id: 553, text: 'يحلّل العناصر الجمالية في التراث المحلي', max: 4 },
-        { id: 554, text: 'يبتكر تكويناً يعكس الهوية الوطنية', max: 4 },
-        { id: 555, text: 'يوظف الألوان بجرأة في التعبير عن الفكرة', max: 4 },
-        { id: 556, text: 'يظهر مهارة في دمج الخامات المختلفة', max: 4 },
-        { id: 557, text: 'ينفذ لوحة تعبر عن رؤية فنية معاصرة', max: 4 },
-        { id: 558, text: 'يشارك في عرض ونقد الأعمال الفنية', max: 4 },
-        { id: 559, text: 'يحافظ على توازن العناصر في العمل الفني', max: 4 },
-        { id: 560, text: 'يظهر إبداعاً في استخدام الرموز المحلية', max: 4 }
       ]
     },
     final: {
@@ -238,15 +226,16 @@ const defaultData = {
         { id: 1308, text: 'يُظهر التزامًا بالعمل الجماعي والنظافة', max: 4 },
         { id: 1309, text: 'يوثق أعماله داخل ملف الإنجاز بوضوح', max: 5 }
       ],
-      grade_int1_saudi_arts: [
-        { id: 1451, text: 'يتقن الأساليب الفنية المتقدمة في التعبير', max: 6 },
-        { id: 1452, text: 'يظهر فهماً عميقاً للهوية الفنية السعودية', max: 7 },
-        { id: 1453, text: 'ينفذ مشروعاً ختامياً متكاملاً ومبدعاً', max: 7 },
-        { id: 1454, text: 'يوظف العناصر الفنية بمهارة واحترافية', max: 6 },
-        { id: 1455, text: 'يبتكر حلولاً فنية غير تقليدية في العمل', max: 5 },
-        { id: 1456, text: 'يظهر دقة عالية في الإخراج النهائي للعمل', max: 5 },
-        { id: 1457, text: 'يعبّر عن فكرة فلسفية أو اجتماعية بوضوح', max: 7 },
-        { id: 1458, text: 'يوثق مراحل عمله في ملف إنجاز متميز', max: 7 }
+      grade_int1_digital_drawing: [
+        { id: 1401, text: 'يتقن استخدام أدوات برنامج Procreate', max: 7 },
+        { id: 1402, text: 'ينظم العمل باستخدام الطبقات بكفاءة عالية', max: 7 },
+        { id: 1403, text: 'يطبق تقنيات التلوين والتظليل الرقمي', max: 7 },
+        { id: 1404, text: 'يصمم شخصيات أو عناصر رقمية مبتكرة', max: 5 },
+        { id: 1405, text: 'يوظف المؤثرات الخاصة لزيادة جاذبية العمل', max: 5 },
+        { id: 1406, text: 'يعبر عن الحركة والعمق باستخدام الظل', max: 5 },
+        { id: 1407, text: 'يدمج الرسم اليدوي مع الصور بمهارة', max: 4 },
+        { id: 1408, text: 'يطبق تقنيات التلوين الرقمي بوضوح ودقة', max: 5 },
+        { id: 1409, text: 'ينجز مشروعاً نهائياً مستوحى من البيئة', max: 5 }
       ]
     }
   }
@@ -264,7 +253,11 @@ async function seedDefaultConfig() {
       });
       console.log('Default system configuration seeded.');
     } else {
-      console.log('System configuration already exists. Skipping seed.');
+      await prisma.systemConfig.update({
+        where: { id: configRow.id },
+        data: { config: JSON.stringify(defaultData) }
+      });
+      console.log('System configuration updated with new assessment criteria.');
     }
   } catch (error) {
     console.error('Error seeding config:', error);
@@ -326,7 +319,7 @@ app.post('/api/students', async (req, res) => {
   try {
     const { name, gradeId } = req.body;
     if (!name) return res.status(400).json({ error: 'Missing student name' });
-    const student = await prisma.student.create({ data: { name, gradeId } });
+    const student = await prisma.student.create({ data: { name, gradeId: gradeId || null } });
     res.json(student);
   } catch (error) {
     res.status(500).json({ error: 'Internal server error', details: error.message });
@@ -389,8 +382,8 @@ app.get('/api/evaluations', async (req, res) => {
   try {
     const { student_id, grade_id, subject_id, evaluation_type } = req.query;
     
-    if (!student_id || !grade_id || !subject_id || !evaluation_type) {
-      return res.status(400).json({ error: 'Missing required query parameters' });
+    if (!student_id || student_id === 'undefined' || !grade_id || !subject_id || !evaluation_type) {
+      return res.json([]); // Return empty instead of 500
     }
 
     const evaluations = await prisma.evaluation.findMany({
@@ -407,7 +400,7 @@ app.get('/api/evaluations', async (req, res) => {
     
     const parsedEvaluations = evaluations.map(e => ({
       ...e,
-      scores: JSON.parse(e.scores)
+      scores: typeof e.scores === 'string' ? JSON.parse(e.scores) : e.scores
     }));
     
     res.json(parsedEvaluations);
@@ -451,6 +444,27 @@ app.get('*', (req, res) => {
   });
 });
 
+async function initializeConfig() {
+  try {
+    const configRow = await prisma.systemConfig.findFirst();
+    if (!configRow) {
+      await prisma.systemConfig.create({
+        data: { config: JSON.stringify(defaultData) }
+      });
+      console.log('System configuration initialized with default data.');
+    } else {
+      await prisma.systemConfig.update({
+        where: { id: configRow.id },
+        data: { config: JSON.stringify(defaultData) }
+      });
+      console.log('System configuration FORCE UPDATED with new assessment criteria.');
+    }
+  } catch (error) {
+    console.error('Failed to initialize configuration:', error);
+  }
+}
+
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
+  initializeConfig();
 });

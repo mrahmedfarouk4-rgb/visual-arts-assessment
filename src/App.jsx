@@ -49,15 +49,22 @@ export default function App() {
   const currentCriteria = useMemo(() => {
     if (!globalConfig || !selectedType) return [];
     const critConfig = globalConfig.criteria || {};
-    if (selectedType === 'unit') return critConfig.unit || [];
+    
+    // Safety check: if criteria is not an object or array, return empty
+    if (!critConfig) return [];
+
+    if (selectedType === 'unit') return Array.isArray(critConfig.unit) ? critConfig.unit : [];
     
     const key = `${selectedGrade}_${selectedSubject}`;
     if (selectedType === 'final') {
       if (Array.isArray(critConfig.final)) return critConfig.final;
-      return critConfig.final?.[key] || critConfig.final?.[selectedSubject || ''] || critConfig.final?.default || [];
+      const finalCrit = critConfig.final || {};
+      return finalCrit[key] || finalCrit[selectedSubject] || finalCrit.default || [];
     }
     if (selectedType === 'periodic') {
-      return critConfig.periodic?.[key] || critConfig.periodic?.[selectedSubject || ''] || critConfig.periodic?.default || [];
+      if (Array.isArray(critConfig.periodic)) return critConfig.periodic;
+      const periodicCrit = critConfig.periodic || {};
+      return periodicCrit[key] || periodicCrit[selectedSubject] || periodicCrit.default || [];
     }
     return [];
   }, [globalConfig, selectedType, selectedSubject, selectedGrade]);
