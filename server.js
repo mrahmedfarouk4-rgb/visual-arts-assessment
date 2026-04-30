@@ -1,4 +1,4 @@
-﻿import express from 'express';
+import express from 'express';
 import cors from 'cors';
 import { PrismaClient } from '@prisma/client';
 import dotenv from 'dotenv';
@@ -268,7 +268,7 @@ app.get('/api/config', async (req, res) => {
     }
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 });
 
@@ -291,7 +291,7 @@ app.post('/api/config', async (req, res) => {
     res.json({ message: 'Configuration saved successfully' });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 });
 
@@ -302,7 +302,7 @@ app.get('/api/students', async (req, res) => {
     });
     res.json(students);
   } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 });
 
@@ -313,7 +313,7 @@ app.post('/api/students', async (req, res) => {
     const student = await prisma.student.create({ data: { name, gradeId } });
     res.json(student);
   } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 });
 
@@ -324,7 +324,7 @@ app.delete('/api/students/:id', async (req, res) => {
     await prisma.student.delete({ where: { id } });
     res.json({ message: 'Student deleted successfully' });
   } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 });
 
@@ -365,7 +365,7 @@ app.post('/api/evaluations', async (req, res) => {
     res.json({ message: 'تم حفظ التقييم بنجاح', evaluation });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 });
 
@@ -397,7 +397,7 @@ app.get('/api/evaluations', async (req, res) => {
     res.json(parsedEvaluations);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 });
 
@@ -422,7 +422,7 @@ app.get('/api/evaluations/batch', async (req, res) => {
     res.json(results.filter(Boolean));
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 });
 
@@ -435,6 +435,27 @@ app.get('*', (req, res) => {
   });
 });
 
+async function initializeConfig() {
+  try {
+    const configRow = await prisma.systemConfig.findFirst();
+    if (!configRow) {
+      await prisma.systemConfig.create({
+        data: { config: JSON.stringify(defaultData) }
+      });
+      console.log('System configuration initialized with default data.');
+    } else {
+      await prisma.systemConfig.update({
+        where: { id: configRow.id },
+        data: { config: JSON.stringify(defaultData) }
+      });
+      console.log('System configuration FORCE UPDATED with new assessment criteria.');
+    }
+  } catch (error) {
+    console.error('Failed to initialize configuration:', error);
+  }
+}
+
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
+  initializeConfig();
 });

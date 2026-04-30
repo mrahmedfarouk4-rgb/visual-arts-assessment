@@ -27,13 +27,15 @@
 
 @media print {
   @page {
-    margin: 1cm;
+    margin: 0.5cm;
     size: A4;
   }
   
   body {
     background: white !important;
     overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 
   .no-print {

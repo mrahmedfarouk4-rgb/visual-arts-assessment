@@ -1,0 +1,33 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model SystemConfig {
+  id        Int      @id @default(autoincrement())
+  config    String // Store JSON as string since SQLite doesn't have JSON type
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Student {
+  id          Int          @id @default(autoincrement())
+  name        String
+  gradeId     String? // Added gradeId to associate student with a grade
+  evaluations Evaluation[]
+}
+
+model Evaluation {
+  id             Int     @id @default(autoincrement())
+  studentId      Int
+  gradeId        String
+  subjectId      String
+  evaluationType String
+  evaluationDate String
+  scores         String // Store JSON as string
+  student        Student @relation(fields: [studentId], references: [id])
+}

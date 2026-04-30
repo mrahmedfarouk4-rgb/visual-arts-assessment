@@ -1,8 +1,3 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -33,25 +28,22 @@ import {
 
 
 export default function App() {
-  const [step, setStep] = useState<'grade' | 'subject' | 'type' | 'student' | 'history' | 'evaluation'>('grade');
-  const [selectedGrade, setSelectedGrade] = useState<string | null>(null);
-  const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
-  const [selectedType, setSelectedType] = useState<'unit' | 'periodic' | 'final' | null>(null);
-  const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
+  const [step, setStep] = useState('grade');
+  const [selectedGrade, setSelectedGrade] = useState(null);
+  const [selectedSubject, setSelectedSubject] = useState(null);
+  const [selectedType, setSelectedType] = useState(null);
+  const [selectedStudent, setSelectedStudent] = useState(null);
   
-  // Student Management State
   const [showStudentManager, setShowStudentManager] = useState(false);
   const [newStudentName, setNewStudentName] = useState('');
 
-  // Global Config State
-  const [globalConfig, setGlobalConfig] = useState<any>(null);
+  const [globalConfig, setGlobalConfig] = useState(null);
   const [isEditMode, setIsEditMode] = useState(false);
 
-  // Derived API Data
   const grades = globalConfig?.grades || [];
   const subjects = useMemo(() => {
     if (!globalConfig || !selectedGrade) return [];
-    return globalConfig.subjects.filter((s: any) => !s.grades || s.grades.includes(selectedGrade));
+    return globalConfig.subjects.filter((s) => !s.grades || s.grades.includes(selectedGrade));
   }, [globalConfig, selectedGrade]);
 
   const currentCriteria = useMemo(() => {
@@ -70,38 +62,20 @@ export default function App() {
     return [];
   }, [globalConfig, selectedType, selectedSubject, selectedGrade]);
 
-  const [students, setStudents] = useState<any[]>([]);
+  const [students, setStudents] = useState([]);
 
-  // Scoring state
-  const [scores, setScores] = useState<Record<string | number, any>>({});
+  const [scores, setScores] = useState({});
   const [evaluationDate, setEvaluationDate] = useState(new Date().toISOString().split('T')[0]);
   const [evaluationLabel, setEvaluationLabel] = useState('');
-  const [evaluationId, setEvaluationId] = useState<number | null>(null);
-  const [pastEvaluations, setPastEvaluations] = useState<any[]>([]);
+  const [evaluationId, setEvaluationId] = useState(null);
+  const [pastEvaluations, setPastEvaluations] = useState([]);
 
-  // Batch print state
-  const [batchSelected, setBatchSelected] = useState<number[]>([]);
-  const [batchPrintData, setBatchPrintData] = useState<any[]>([]);
+  const [batchSelected, setBatchSelected] = useState([]);
+  const [batchPrintData, setBatchPrintData] = useState([]);
   const [batchPrinting, setBatchPrinting] = useState(false);
+  const [printTeacherName, setPrintTeacherName] = useState('');
 
-  // Trigger print after batch data is ready
-  useEffect(() => {
-    if (batchPrinting && batchPrintData.length > 0) {
-      const timer = setTimeout(() => {
-        window.print();
-      }, 800);
-      const handleAfterPrint = () => {
-        setBatchPrinting(false);
-        setBatchPrintData([]);
-        setBatchSelected([]);
-      };
-      window.addEventListener('afterprint', handleAfterPrint);
-      return () => {
-        clearTimeout(timer);
-        window.removeEventListener('afterprint', handleAfterPrint);
-      };
-    }
-  }, [batchPrinting, batchPrintData]);
+
 
   useEffect(() => {
     fetch('/api/config').then(r => r.json()).then(setGlobalConfig).catch(console.error);
@@ -164,9 +138,9 @@ export default function App() {
     }
   };
 
-  const updateConfigValue = (path: (string | number)[], newValue: string) => {
+  const updateConfigValue = (path, newValue) => {
     if (!newValue.trim()) return;
-    setGlobalConfig((prev: any) => {
+    setGlobalConfig((prev) => {
       const newConfig = JSON.parse(JSON.stringify(prev));
       let current = newConfig;
       for (let i = 0; i < path.length - 1; i++) {
@@ -177,7 +151,7 @@ export default function App() {
     });
   };
 
-  const InlineEditBtn = ({ path, value }: { path: (string | number)[], value: string }) => {
+  const InlineEditBtn = ({ path, value }) => {
     if (!isEditMode) return null;
     return (
       <button 
@@ -196,27 +170,31 @@ export default function App() {
     );
   };
 
-  const getCriteriaPath = (idx: number) => {
+  const getCriteriaPath = (idx) => {
     const key = `${selectedGrade}_${selectedSubject}`;
     if (selectedType === 'periodic') {
       let subjKey = 'default';
       if (globalConfig?.criteria?.periodic?.[key]) subjKey = key;
-      else if (globalConfig?.criteria?.periodic?.[selectedSubject || '']) subjKey = selectedSubject as string;
+      else if (globalConfig?.criteria?.periodic?.[selectedSubject || '']) subjKey = selectedSubject;
       return ['criteria', 'periodic', subjKey, idx, 'text'];
     }
     if (selectedType === 'final') {
       let subjKey = 'default';
       if (globalConfig?.criteria?.final?.[key]) subjKey = key;
-      else if (globalConfig?.criteria?.final?.[selectedSubject || '']) subjKey = selectedSubject as string;
+      else if (globalConfig?.criteria?.final?.[selectedSubject || '']) subjKey = selectedSubject;
       
       if (Array.isArray(globalConfig?.criteria?.final)) return ['criteria', 'final', idx, 'text'];
       return ['criteria', 'final', subjKey, idx, 'text'];
     }
-    return ['criteria', selectedType as string, idx, 'text'];
+    return ['criteria', selectedType, idx, 'text'];
   };
 
 
   const addStudent = async () => {
+    if (!isEditMode) {
+      alert('يجب تفعيل وضع التعديل بكلمة المرور للقيام بهذه العملية');
+      return;
+    }
     if (!newStudentName.trim()) return;
     if (!selectedGrade) {
       alert('الرجاء اختيار الصف أولاً');
@@ -236,7 +214,11 @@ export default function App() {
     }
   };
 
-  const deleteStudent = async (id: number) => {
+  const deleteStudent = async (id) => {
+    if (!isEditMode) {
+      alert('يجب تفعيل وضع التعديل بكلمة المرور للقيام بهذه العملية');
+      return;
+    }
     if (!window.confirm('هل أنت متأكد من حذف هذا الطالب؟')) return;
     try {
       await fetch(`/api/students/${id}`, { method: 'DELETE' });
@@ -278,17 +260,17 @@ export default function App() {
   };
 
   const totalPossible = useMemo(() => {
-    return currentCriteria.reduce((acc: number, curr: any) => acc + (curr.max || 4), 0);
+    return currentCriteria.reduce((acc, curr) => acc + (curr.max || 4), 0);
   }, [currentCriteria]);
 
   const currentScore = useMemo(() => {
-    return Object.entries(scores).reduce((acc: number, [key, curr]: any) => {
+    return Object.entries(scores).reduce((acc, [key, curr]) => {
       if (key.startsWith('_')) return acc;
       return acc + (typeof curr === 'number' ? curr : 0);
     }, 0);
   }, [scores]);
 
-  const getCategory = (score: number, total: number) => {
+  const getCategory = (score, total) => {
     const percentage = (score / total) * 100;
     if (selectedType === 'unit') {
       if (score > 15) return { label: 'يتخطى الهدف (موهوب)', color: 'text-purple-600', bg: 'bg-purple-100' };
@@ -391,7 +373,7 @@ export default function App() {
                     <h3 className="text-xl font-bold text-gray-900 mb-1 flex items-center">
                       {grade.name}
                       <InlineEditBtn 
-                        path={['grades', globalConfig?.grades?.findIndex((g: any) => g.id === grade.id), 'name']} 
+                        path={['grades', globalConfig?.grades?.findIndex((g) => g.id === grade.id), 'name']} 
                         value={grade.name} 
                       />
                     </h3>
@@ -428,7 +410,7 @@ export default function App() {
                 <h3 className="text-lg font-bold text-gray-800 group-hover:text-indigo-600 transition-colors flex items-center justify-between w-full">
                   <span className="flex-1">{subject.name}</span>
                   <InlineEditBtn 
-                    path={['subjects', globalConfig?.subjects?.findIndex((s: any) => s.id === subject.id), 'name']} 
+                    path={['subjects', globalConfig?.subjects?.findIndex((s) => s.id === subject.id), 'name']} 
                     value={subject.name} 
                   />
                 </h3>
@@ -530,7 +512,7 @@ export default function App() {
             </div>
             <div className="grid grid-cols-1 gap-3">
               {students.filter(s => s.gradeId === selectedGrade || !s.gradeId).map(student => {
-                const count = student.evaluations?.filter((e: any) => e.gradeId === selectedGrade && e.subjectId === selectedSubject && e.evaluationType === selectedType).length || 0;
+                const count = student.evaluations?.filter((e) => e.gradeId === selectedGrade && e.subjectId === selectedSubject && e.evaluationType === selectedType).length || 0;
                 const isChecked = batchSelected.includes(student.id);
                 return (
                   <div
@@ -611,6 +593,15 @@ export default function App() {
             <div className="grid grid-cols-1 gap-3">
               <button
                 onClick={() => {
+                  if (!isEditMode) {
+                    const pwd = window.prompt('إضافة تقييم جديد يتطلب وضع التعديل. أدخل كلمة المرور (أو اضغط إلغاء للعرض والطباعة فقط):');
+                    if (pwd === '01020') {
+                      setIsEditMode(true);
+                    } else if (pwd !== null) {
+                      alert('كلمة المرور غير صحيحة');
+                      return;
+                    }
+                  }
                   setEvaluationId(null);
                   setScores({});
                   setEvaluationLabel('');
@@ -629,6 +620,15 @@ export default function App() {
                   <button
                     key={ev.id}
                     onClick={() => {
+                      if (!isEditMode) {
+                        const pwd = window.prompt('تعديل التقييم يتطلب وضع التعديل. أدخل كلمة المرور (أو اضغط إلغاء للعرض والطباعة فقط):');
+                        if (pwd === '01020') {
+                          setIsEditMode(true);
+                        } else if (pwd !== null) {
+                          alert('كلمة المرور غير صحيحة');
+                          return;
+                        }
+                      }
                       setEvaluationId(ev.id);
                       setEvaluationDate(ev.evaluationDate);
                       if (parsedScores) {
@@ -717,7 +717,7 @@ export default function App() {
             {/* Criteria List */}
             <div className="space-y-6 print:space-y-0 print:border-t print:border-gray-200">
               {currentCriteria.map((criterion, idx) => {
-                const max = (criterion as any).max || 4;
+                const max = criterion.max || 4;
                 return (
                   <div key={criterion.id} className="bg-white p-6 print:p-1.5 print:px-2 rounded-2xl border border-gray-100 shadow-sm print:border-0 print:border-b print:border-gray-200 print:rounded-none print:shadow-none print:flex print:items-center print:justify-between print:gap-4">
                     <div className="flex items-center gap-4 mb-6 print:mb-0 print:flex-1">
@@ -788,53 +788,65 @@ export default function App() {
                 onClick={reset}
                 className="flex-1 py-4 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-2xl transition-all text-sm"
               >
-                إلغاء
+                {isEditMode ? 'إلغاء' : 'رجوع'}
               </button>
 
-              {/* Save Only */}
-              <button 
-                onClick={async () => {
-                  try {
-                    const res = await fetch('/api/evaluations', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        id: evaluationId,
-                        student_id: selectedStudent.id,
-                        grade_id: selectedGrade,
-                        subject_id: selectedSubject,
-                        evaluation_type: selectedType,
-                        evaluation_date: evaluationDate,
-                        scores: { ...scores, _evaluationLabel: evaluationLabel }
-                      })
-                    });
-                    if (res.ok) {
-                      const data = await res.json();
-                      if (data.evaluation?.id) setEvaluationId(data.evaluation.id);
-                      // Stay in same grade/subject/type, go back to student selection
-                      setSelectedStudent(null);
-                      setScores({});
-                      setEvaluationLabel('');
-                      setEvaluationId(null);
-                      setPastEvaluations([]);
-                      setEvaluationDate(new Date().toISOString().split('T')[0]);
-                      setStep('student');
-                    } else {
-                      alert('حدث خطأ أثناء الحفظ');
+              {!isEditMode && (
+                <div className="flex-[2.5] bg-amber-50 border border-amber-200 rounded-2xl p-2 flex items-center justify-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-600" />
+                  <span className="text-[11px] font-bold text-amber-800">وضع العرض فقط - فعل وضع التعديل للحفظ</span>
+                </div>
+              )}
+
+              {isEditMode && (
+                <button 
+                  onClick={async () => {
+                    try {
+                      const res = await fetch('/api/evaluations', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          id: evaluationId,
+                          student_id: selectedStudent.id,
+                          grade_id: selectedGrade,
+                          subject_id: selectedSubject,
+                          evaluation_type: selectedType,
+                          evaluation_date: evaluationDate,
+                          scores: { ...scores, _evaluationLabel: evaluationLabel }
+                        })
+                      });
+                      if (res.ok) {
+                        const data = await res.json();
+                        if (data.evaluation?.id) setEvaluationId(data.evaluation.id);
+                        setSelectedStudent(null);
+                        setScores({});
+                        setEvaluationLabel('');
+                        setEvaluationId(null);
+                        setPastEvaluations([]);
+                        setEvaluationDate(new Date().toISOString().split('T')[0]);
+                        setStep('student');
+                      } else {
+                        alert('حدث خطأ أثناء الحفظ');
+                      }
+                    } catch (e) {
+                      console.error(e);
+                      alert('حدث خطأ في الاتصال بالخادم');
                     }
-                  } catch (e) {
-                    console.error(e);
-                    alert('حدث خطأ في الاتصال بالخادم');
-                  }
-                }}
-                className="flex-[1.5] py-4 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl shadow-lg shadow-emerald-100 transition-all text-sm"
-              >
-                ✓ حفظ فقط
-              </button>
+                  }}
+                  className="flex-[1.5] py-4 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl shadow-lg shadow-emerald-100 transition-all text-sm"
+                >
+                  ✓ حفظ فقط
+                </button>
+              )}
 
               {/* Save and Print */}
               <button 
                 onClick={async () => {
+                  if (!isEditMode) {
+                    setBatchPrintData([{ student: selectedStudent, evaluation: { evaluationDate, scores: { ...scores, _evaluationLabel: evaluationLabel }, evaluationType: selectedType } }]);
+                    setBatchPrinting(true);
+                    return;
+                  }
                   try {
                     const res = await fetch('/api/evaluations', {
                       method: 'POST',
@@ -852,10 +864,8 @@ export default function App() {
                     if (res.ok) {
                       const data = await res.json();
                       if (data.evaluation?.id) setEvaluationId(data.evaluation.id);
-                      // Trigger professional overlay for single print
                       setBatchPrintData([{ student: selectedStudent, evaluation: data.evaluation }]);
                       setBatchPrinting(true);
-                      // Reset will be handled by afterprint listener or manually after a delay
                     } else {
                       alert('حدث خطأ أثناء الحفظ');
                     }
@@ -921,46 +931,55 @@ export default function App() {
             </div>
             
             <div className="p-6">
-              <div className="flex flex-col gap-3 mb-6">
-                <select 
-                  value={selectedGrade || ''} 
-                  onChange={(e) => setSelectedGrade(e.target.value)}
-                  className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold outline-none focus:border-indigo-500 focus:bg-white transition-all"
-                >
-                  <option value="" disabled>اختر الصف لإضافة/عرض الطلاب...</option>
-                  {grades.map((g: any) => (
-                    <option key={g.id} value={g.id}>{g.name}</option>
-                  ))}
-                </select>
-                <div className="flex gap-2">
-                  <input 
-                    type="text" 
-                    placeholder="اسم الطالب الجديد..." 
-                    value={newStudentName}
-                    onChange={e => setNewStudentName(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && addStudent()}
-                    className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold outline-none focus:border-indigo-500 focus:bg-white transition-all"
-                  />
-                  <button 
-                    onClick={addStudent}
-                    className="bg-indigo-600 text-white p-3 rounded-xl hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-200"
+              {isEditMode ? (
+                <div className="flex flex-col gap-3 mb-6">
+                  <select 
+                    value={selectedGrade || ''} 
+                    onChange={(e) => setSelectedGrade(e.target.value)}
+                    className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold outline-none focus:border-indigo-500 focus:bg-white transition-all"
                   >
-                    <Plus className="w-5 h-5" />
-                  </button>
+                    <option value="" disabled>اختر الصف لإضافة/عرض الطلاب...</option>
+                    {grades.map((g) => (
+                      <option key={g.id} value={g.id}>{g.name}</option>
+                    ))}
+                  </select>
+                  <div className="flex gap-2">
+                    <input 
+                      type="text" 
+                      placeholder="اسم الطالب الجديد..." 
+                      value={newStudentName}
+                      onChange={e => setNewStudentName(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && addStudent()}
+                      className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold outline-none focus:border-indigo-500 focus:bg-white transition-all"
+                    />
+                    <button 
+                      onClick={addStudent}
+                      className="bg-indigo-600 text-white p-3 rounded-xl hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-200"
+                    >
+                      <Plus className="w-5 h-5" />
+                    </button>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-center gap-3">
+                  <AlertCircle className="w-5 h-5 text-amber-600" />
+                  <p className="text-sm font-bold text-amber-900">وضع العرض فقط - فعل وضع التعديل لإدارة الطلاب</p>
+                </div>
+              )}
 
               <div className="space-y-2 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
                 {students.filter(s => !selectedGrade || s.gradeId === selectedGrade || !s.gradeId).map(s => (
                   <div key={s.id} className="flex items-center justify-between p-3 border border-gray-100 rounded-xl hover:border-indigo-100 transition-colors group">
                     <span className="font-bold text-gray-700 text-sm">{s.name}</span>
-                    <button 
-                      onClick={() => deleteStudent(s.id)}
-                      className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                      title="حذف الطالب"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {isEditMode && (
+                      <button 
+                        onClick={() => deleteStudent(s.id)}
+                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                        title="حذف الطالب"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 ))}
                 {students.filter(s => !selectedGrade || s.gradeId === selectedGrade || !s.gradeId).length === 0 && (
@@ -980,7 +999,16 @@ export default function App() {
       <div className="print-overlay">
         {/* Control bar - only visible on screen, not printed */}
         <div className="no-print" style={{ position: 'sticky', top: 0, background: '#1e293b', color: '#fff', padding: '12px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10, boxShadow: '0 2px 10px rgba(0,0,0,0.1)' }}>
-          <span style={{ fontWeight: 'bold', fontSize: '15px' }}>معاينة الطباعة ({batchPrintData.length} طالب)</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+            <span style={{ fontWeight: 'bold', fontSize: '15px' }}>معاينة الطباعة ({batchPrintData.length} طالب)</span>
+            <input 
+               type="text" 
+               placeholder="اكتب اسم المعلم هنا للطباعة..." 
+               value={printTeacherName} 
+               onChange={e => setPrintTeacherName(e.target.value)}
+               style={{ padding: '6px 12px', borderRadius: '6px', color: '#000', border: '1px solid #cbd5e1', fontSize: '13px', minWidth: '250px' }}
+            />
+          </div>
           <div style={{ display: 'flex', gap: '10px' }}>
             <button
               onClick={() => window.print()}
@@ -996,17 +1024,17 @@ export default function App() {
             </button>
           </div>
         </div>
-        {batchPrintData.map((item: any, pageIdx: number) => {
+        {batchPrintData.map((item, pageIdx) => {
           const student = item.student;
           const ev = item.evaluation;
           const sc = ev?.scores || {};
-          const totalScore = currentCriteria.reduce((acc: number, c: any) => {
+          const totalScore = currentCriteria.reduce((acc, c) => {
             const v = sc[c.id];
             return acc + (typeof v === 'number' ? v : 0);
           }, 0);
-          const totalMax = currentCriteria.reduce((acc: number, c: any) => acc + (c.max || 4), 0);
-          const gradeName = grades.find((g: any) => g.id === selectedGrade)?.name || '';
-          const subjectName = (globalConfig?.subjects || []).find((s: any) => s.id === selectedSubject)?.name || '';
+          const totalMax = currentCriteria.reduce((acc, c) => acc + (c.max || 4), 0);
+          const gradeName = grades.find((g) => g.id === selectedGrade)?.name || '';
+          const subjectName = (globalConfig?.subjects || []).find((s) => s.id === selectedSubject)?.name || '';
           const evalTypeLabel = ev?.evaluationType === 'unit'
             ? (globalConfig?.evalTypeTitles?.unit || 'تقييم نهاية الوحدة')
             : ev?.evaluationType === 'periodic'
@@ -1027,8 +1055,11 @@ export default function App() {
                 direction: 'rtl',
                 padding: '0',
                 minHeight: '29.7cm',
+                width: '100%',
+                maxWidth: '100%',
                 boxSizing: 'border-box',
-                display: 'flex',
+                display: 'block',
+                overflow: 'hidden',
                 color: '#1e293b',
                 background: 'white',
                 position: 'relative'
@@ -1037,11 +1068,11 @@ export default function App() {
               {/* Background Watermark/Logo */}
               <div style={{ 
                 position: 'absolute', 
-                top: '50%', 
+                top: '55%', 
                 left: '50%', 
-                transform: 'translate(-50%, -50%) rotate(-30deg)', 
-                opacity: 0.03, 
-                fontSize: '120px', 
+                transform: 'translate(-50%, -50%) rotate(-15deg)', 
+                opacity: 0.04, 
+                fontSize: '180px', 
                 fontWeight: '900', 
                 color: '#1e293b', 
                 zIndex: 0, 
@@ -1051,87 +1082,74 @@ export default function App() {
                 وزارة الثقافة
               </div>
 
-              {/* Vertical Identity Strip (Colorful Mosaic) */}
-              <div style={{ width: '25px', display: 'flex', flexDirection: 'column', height: '100%', position: 'absolute', right: 0, top: 0, bottom: 0, zIndex: 10 }}>
-                 <div style={{ flex: 1.5, background: '#7c2d12' }}></div> {/* Dark Red */}
-                 <div style={{ flex: 1, background: '#db2777' }}></div> {/* Pink */}
-                 <div style={{ flex: 1.2, background: '#7c3aed' }}></div> {/* Purple */}
-                 <div style={{ flex: 1, background: '#2563eb' }}></div> {/* Blue */}
-                 <div style={{ flex: 1.3, background: '#ea580c' }}></div> {/* Orange */}
-                 <div style={{ flex: 1, background: '#f59e0b' }}></div> {/* Yellow */}
-                 <div style={{ flex: 1.5, background: '#7c2d12' }}></div> {/* Repeat */}
-                 <div style={{ flex: 1, background: '#db2777' }}></div>
-                 <div style={{ flex: 1.2, background: '#7c3aed' }}></div>
-              </div>
-
               {/* Page Content Container */}
-              <div style={{ flex: 1, padding: '1.2cm 2.5cm 1.2cm 1.5cm', display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 5 }}>
+              <div style={{ flex: 1, padding: '0.5cm 1cm', display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 5, width: '100%', boxSizing: 'border-box' }}>
                 
                 {/* Official Header */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '15px' }}>
-                  <div style={{ textAlign: 'right' }}>
+                  <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                       <div style={{ width: '45px', height: '45px', background: 'linear-gradient(135deg, #1e293b, #334155)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
-                          <Palette className="w-7 h-7 text-white" />
-                       </div>
                        <div style={{ textAlign: 'right' }}>
                           <div style={{ fontWeight: '900', fontSize: '24px', color: '#0f172a', lineHeight: '1', letterSpacing: '-0.02em' }}>وزارة الثقـــــافة</div>
                           <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 'bold', marginTop: '2px' }}>Ministry of Culture</div>
                        </div>
+                       <div style={{ width: '45px', height: '45px', background: '#1e293b', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Palette className="w-7 h-7 text-white" />
+                       </div>
                     </div>
-                    <div style={{ fontSize: '13px', fontWeight: '900', color: '#475569', background: '#f8fafc', padding: '4px 12px', borderRadius: '6px', border: '1px solid #f1f5f9', display: 'inline-block', marginTop: '10px' }}>
+                    <div style={{ fontSize: '13px', fontWeight: '900', color: '#475569', background: '#f8fafc', padding: '6px 16px', borderRadius: '20px', border: '1px solid #e2e8f0', display: 'inline-block', marginTop: '4px' }}>
                        {evalTypeLabel} — {subjectName}
                     </div>
                   </div>
-                  <div style={{ textAlign: 'left', fontSize: '11px', color: '#94a3b8', fontWeight: '800' }}>
-                    <div style={{ color: '#64748b', fontSize: '12px', marginBottom: '2px' }}>مسار الفنون البصرية</div>
-                    <div>الصف الدراسي: {gradeName}</div>
+                  <div style={{ textAlign: 'right', fontSize: '12px', color: '#94a3b8', fontWeight: '800', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div style={{ color: '#64748b' }}>مسار الفنون البصرية</div>
+                    <div style={{ color: '#94a3b8' }}>الصف الدراسي: {gradeName}</div>
                   </div>
                 </div>
 
-                <div style={{ textAlign: 'center', margin: '25px 0' }}>
-                  <h2 style={{ fontSize: '20px', fontWeight: '900', color: '#1e293b', position: 'relative', display: 'inline-block' }}>
-                    استمارة تقييم لأنشطة الفنون البصرية السعودية
-                    <div style={{ position: 'absolute', bottom: '-8px', left: '10%', right: '10%', height: '2px', background: '#e2e8f0' }}></div>
+                <div style={{ textAlign: 'center', margin: '35px 0' }}>
+                  <h2 style={{ fontSize: '18px', fontWeight: '900', color: '#1e293b' }}>
+                    استمارة تقييم لأنشطة {subjectName}
                   </h2>
                 </div>
 
                 {/* Student/Teacher Metadata */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '40px', marginBottom: '35px', fontSize: '13px' }}>
-                  <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
-                    <span style={{ fontWeight: '800', color: '#64748b', whiteSpace: 'nowrap' }}>اسم الطالب / الطالبة:</span>
-                    <div style={{ borderBottom: '1px solid #e2e8f0', flex: 1, paddingBottom: '3px', fontWeight: '900', fontSize: '15px', color: '#1e293b' }}>{student.name}</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', rowGap: '15px', columnGap: '40px', marginBottom: '25px', fontSize: '13px', color: '#334155', width: '100%' }}>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <span style={{ fontWeight: '800', whiteSpace: 'nowrap' }}>اسم الطالب / الطالبة:</span>
+                    <span style={{ fontWeight: '900', color: '#000', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{student.name}</span>
                   </div>
-                  <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
-                    <span style={{ fontWeight: '800', color: '#64748b', whiteSpace: 'nowrap' }}>اسم المعلم / المعلمة:</span>
-                    <div style={{ borderBottom: '1px solid #e2e8f0', flex: 1, paddingBottom: '3px' }}>......................................................</div>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', minWidth: 0 }}>
+                    <span style={{ fontWeight: '800', whiteSpace: 'nowrap' }}>اسم المعلم / المعلمة:</span>
+                    <span style={{ flex: 1, borderBottom: printTeacherName ? 'none' : '3px dotted #60a5fa', marginBottom: '4px', minWidth: '50px', fontWeight: '900', color: '#000' }}>{printTeacherName}</span>
                   </div>
-                  <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
-                    <span style={{ fontWeight: '800', color: '#64748b', whiteSpace: 'nowrap' }}>التاريخ:</span>
-                    <div style={{ borderBottom: '1px solid #e2e8f0', flex: 1, paddingBottom: '3px' }}>{ev?.evaluationDate || new Date().toLocaleDateString('ar-SA')}</div>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <span style={{ fontWeight: '800', whiteSpace: 'nowrap' }}>التاريخ:</span>
+                    <span style={{ fontWeight: '900', color: '#000', whiteSpace: 'nowrap' }}>{ev?.evaluationDate || new Date().toISOString().split('T')[0]}</span>
                   </div>
-                  <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
-                    <span style={{ fontWeight: '800', color: '#64748b', whiteSpace: 'nowrap' }}>عنوان الوحدة الدراسية:</span>
-                    <div style={{ borderBottom: '1px solid #e2e8f0', flex: 1, paddingBottom: '3px' }}>{label || '......................................................'}</div>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', minWidth: 0 }}>
+                    <span style={{ fontWeight: '800', whiteSpace: 'nowrap' }}>عنوان الوحدة الدراسية:</span>
+                    {label && <span style={{ color: '#60a5fa', fontWeight: 'bold', whiteSpace: 'nowrap' }}>{label}</span>}
+                    <span style={{ flex: 1, borderBottom: '3px dotted #60a5fa', marginBottom: '4px', minWidth: '20px' }}></span>
                   </div>
                 </div>
 
                 {/* Main Table */}
                 <div style={{ flex: 1 }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', border: '1.5px solid #000', fontSize: '12px' }}>
+                  <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', border: '1px solid #000', fontSize: '12px' }}>
                     <thead>
                       <tr style={{ background: '#f8fafc' }}>
-                        <th style={{ border: '1.5px solid #000', padding: '12px 5px', width: '40px', fontWeight: '900' }}>#</th>
-                        <th style={{ border: '1.5px solid #000', padding: '12px 15px', textAlign: 'center', fontWeight: '900' }}>المعيار</th>
-                        <th style={{ border: '1.5px solid #000', padding: '10px 5px', width: '90px', background: '#94a3b8', color: 'white', fontWeight: '900' }}>دون الهدف (1)</th>
-                        <th style={{ border: '1.5px solid #000', padding: '10px 5px', width: '90px', background: '#60a5fa', color: 'white', fontWeight: '900' }}>يقترب من الهدف (2)</th>
-                        <th style={{ border: '1.5px solid #000', padding: '10px 5px', width: '90px', background: '#2563eb', color: 'white', fontWeight: '900' }}>حقق الهدف (3)</th>
-                        <th style={{ border: '1.5px solid #000', padding: '10px 5px', width: '90px', background: '#7c3aed', color: 'white', fontWeight: '900' }}>يتخطى الهدف (4)</th>
+                        <th style={{ border: '1px solid #000', padding: '12px 5px', width: '40px', fontWeight: '900' }}>#</th>
+                        <th style={{ border: '1px solid #000', padding: '12px 15px', textAlign: 'center', fontWeight: '900' }}>المعيار</th>
+                        <th style={{ border: '1px solid #000', padding: '10px 5px', width: '90px', background: '#9ca3af', color: 'white', fontWeight: '900' }}>دون الهدف (1)</th>
+                        <th style={{ border: '1px solid #000', padding: '10px 5px', width: '90px', background: '#60a5fa', color: 'white', fontWeight: '900' }}>يقترب من الهدف (2)</th>
+                        <th style={{ border: '1px solid #000', padding: '10px 5px', width: '90px', background: '#2563eb', color: 'white', fontWeight: '900' }}>حقق الهدف (3)</th>
+                        <th style={{ border: '1px solid #000', padding: '10px 5px', width: '90px', background: '#7c3aed', color: 'white', fontWeight: '900' }}>يتخطى الهدف (4)</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {currentCriteria.map((criterion: any, idx: number) => {
-                        const score = sc[criterion.id];
+                      {currentCriteria.map((criterion, idx) => {
+                        const score = Number(sc[criterion.id]);
                         return (
                           <tr key={criterion.id}>
                             <td style={{ border: '1px solid #000', padding: '14px 5px', textAlign: 'center', fontWeight: '900' }}>{idx + 1}</td>
@@ -1140,16 +1158,16 @@ export default function App() {
                               <td key={level} style={{ border: '1px solid #000', padding: '0', textAlign: 'center' }}>
                                 <div style={{ 
                                   margin: '0 auto', 
-                                  width: '20px', 
-                                  height: '20px', 
-                                  border: '1.5px solid #000', 
+                                  width: '22px', 
+                                  height: '22px', 
+                                  border: '1px solid #000', 
                                   display: 'flex', 
                                   alignItems: 'center', 
                                   justifyContent: 'center',
-                                  background: score === level ? '#1e293b' : 'transparent',
+                                  background: 'transparent',
                                   fontWeight: '900',
-                                  fontSize: '14px',
-                                  color: 'white'
+                                  fontSize: '16px',
+                                  color: '#000'
                                 }}>
                                   {score === level && '✓'}
                                 </div>
@@ -1158,49 +1176,17 @@ export default function App() {
                           </tr>
                         );
                       })}
+                      {/* Total Score and Evaluation Row */}
+                      <tr style={{ background: '#f1f5f9' }}>
+                        <td colSpan={2} style={{ border: '1px solid #000', padding: '14px 15px', textAlign: 'left', fontWeight: '900', fontSize: '14px' }}>
+                          المجموع الكلي: <span style={{ padding: '0 10px', fontSize: '16px' }}>{totalScore}</span> من {totalMax}
+                        </td>
+                        <td colSpan={4} style={{ border: '1px solid #000', padding: '14px 15px', textAlign: 'center', fontWeight: '900', fontSize: '14px', color: '#1d4ed8' }}>
+                          تقييم الطالب: {category?.label || ''}
+                        </td>
+                      </tr>
                     </tbody>
                   </table>
-                </div>
-
-                {/* Score Summary Area */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: '40px' }}>
-                  <div style={{ width: '320px' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', border: '1.2px solid #000', fontSize: '11px', textAlign: 'center' }}>
-                      <thead>
-                        <tr style={{ background: '#f1f5f9' }}>
-                          <th style={{ border: '1.2px solid #000', padding: '8px', fontWeight: '900' }}>المجموع من {totalMax}</th>
-                          <th style={{ border: '1.2px solid #000', padding: '8px', fontWeight: '900' }}>الفئة</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr>
-                          <td style={{ border: '1.2px solid #000', padding: '8px', fontWeight: '800' }}>أقل من {Math.round(totalMax * 0.4)}</td>
-                          <td style={{ border: '1.2px solid #000', padding: '8px', fontWeight: '800' }}>دون الهدف</td>
-                        </tr>
-                        <tr>
-                          <td style={{ border: '1.2px solid #000', padding: '8px', fontWeight: '800' }}>من {Math.round(totalMax * 0.4)} إلى {Math.round(totalMax * 0.6)}</td>
-                          <td style={{ border: '1.2px solid #000', padding: '8px', fontWeight: '800' }}>يقترب من الهدف</td>
-                        </tr>
-                        <tr>
-                          <td style={{ border: '1.2px solid #000', padding: '8px', fontWeight: '800' }}>من {Math.round(totalMax * 0.6) + 1} إلى {Math.round(totalMax * 0.75)}</td>
-                          <td style={{ border: '1.2px solid #000', padding: '8px', fontWeight: '800' }}>حقق الهدف</td>
-                        </tr>
-                        <tr>
-                          <td style={{ border: '1.2px solid #000', padding: '8px', fontWeight: '900', background: '#fef2f2' }}>أكثر من {Math.round(totalMax * 0.75)}</td>
-                          <td style={{ border: '1.2px solid #000', padding: '8px', fontWeight: '900', background: '#fef2f2' }}>يتخطى الهدف (موهوب)</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-
-                  <div style={{ textAlign: 'left', flex: 1, paddingRight: '40px' }}>
-                    <div style={{ fontSize: '28px', fontWeight: '900', color: '#1e293b', marginBottom: '10px' }}>
-                      المجموع: <span style={{ padding: '0 30px', borderBottom: '2px solid #000' }}>{totalScore}</span> من {totalMax}
-                    </div>
-                    <div style={{ fontSize: '18px', fontWeight: '900', color: '#7c3aed' }}>
-                       المستوى: {getCategory(totalScore, totalMax).label}
-                    </div>
-                  </div>
                 </div>
 
                 {/* Official Footer with Page Number */}
