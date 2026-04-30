@@ -50,23 +50,27 @@ export default function App() {
     if (!globalConfig || !selectedType) return [];
     const critConfig = globalConfig.criteria || {};
     
-    // Safety check: if criteria is not an object or array, return empty
     if (!critConfig) return [];
 
-    if (selectedType === 'unit') return Array.isArray(critConfig.unit) ? critConfig.unit : [];
-    
     const key = `${selectedGrade}_${selectedSubject}`;
-    if (selectedType === 'final') {
-      if (Array.isArray(critConfig.final)) return critConfig.final;
-      const finalCrit = critConfig.final || {};
-      return finalCrit[key] || finalCrit[selectedSubject] || finalCrit.default || [];
+    
+    // 1. Try specific key (grade_subject)
+    let found = critConfig[key];
+    
+    // 2. Try subject only key
+    if (!found) found = critConfig[selectedSubject];
+    
+    // 3. Try type-based legacy paths
+    if (!found) {
+      if (selectedType === 'unit') found = critConfig.unit;
+      else if (selectedType === 'final') found = critConfig.final?.[key] || critConfig.final?.[selectedSubject];
+      else if (selectedType === 'periodic') found = critConfig.periodic?.[key] || critConfig.periodic?.[selectedSubject];
     }
-    if (selectedType === 'periodic') {
-      if (Array.isArray(critConfig.periodic)) return critConfig.periodic;
-      const periodicCrit = critConfig.periodic || {};
-      return periodicCrit[key] || periodicCrit[selectedSubject] || periodicCrit.default || [];
-    }
-    return [];
+
+    // 4. Fallback to default
+    if (!found) found = critConfig.default || [];
+
+    return Array.isArray(found) ? found : [];
   }, [globalConfig, selectedType, selectedSubject, selectedGrade]);
 
   const [students, setStudents] = useState([]);
