@@ -1027,227 +1027,124 @@ export default function App() {
     {/* BATCH PRINT AREA */}
     {batchPrinting && batchPrintData.length > 0 && (
       <div className="print-overlay">
-        {/* Control bar - only visible on screen, not printed */}
-        <div className="no-print" style={{ position: 'sticky', top: 0, background: '#1e293b', color: '#fff', padding: '12px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10, boxShadow: '0 2px 10px rgba(0,0,0,0.1)' }}>
+        <style>{`
+          @media print {
+            @page { size: A4 portrait; margin: 10mm; }
+            .print-overlay { position: static !important; background: white !important; padding: 0 !important; }
+            .no-print { display: none !important; }
+            .print-page { 
+              page-break-after: always !important; 
+              break-after: page !important;
+              display: block !important;
+              width: 100% !important;
+              padding: 0 !important;
+              margin: 0 !important;
+            }
+            .print-page:last-child { page-break-after: auto !important; }
+          }
+        `}</style>
+        
+        {/* Control bar */}
+        <div className="no-print" style={{ position: 'fixed', top: 0, left: 0, right: 0, background: '#1e293b', color: '#fff', padding: '12px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 1000 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-            <span style={{ fontWeight: 'bold', fontSize: '15px' }}>معاينة الطباعة ({batchPrintData.length} طالب)</span>
+            <span style={{ fontWeight: 'bold' }}>معاينة الطباعة ({batchPrintData.length} طالب)</span>
             <input 
                type="text" 
-               placeholder="اكتب اسم المعلم هنا للطباعة..." 
+               placeholder="اسم المعلم..." 
                value={printTeacherName} 
                onChange={e => setPrintTeacherName(e.target.value)}
-               style={{ padding: '6px 12px', borderRadius: '6px', color: '#000', border: '1px solid #cbd5e1', fontSize: '13px', minWidth: '250px' }}
+               style={{ padding: '6px 12px', borderRadius: '6px', color: '#000', border: 'none', width: '200px' }}
             />
           </div>
           <div style={{ display: 'flex', gap: '10px' }}>
-            <button
-              onClick={() => window.print()}
-              style={{ background: '#fff', color: '#1e293b', border: 'none', borderRadius: '8px', padding: '8px 20px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}
-            >
-              🖨 طباعة الآن
-            </button>
-            <button
-              onClick={() => { setBatchPrinting(false); setBatchPrintData([]); setBatchSelected([]); }}
-              style={{ background: 'rgba(255,255,255,0.1)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px', padding: '8px 20px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}
-            >
-              ✕ إغلاق
-            </button>
+            <button onClick={() => window.print()} className="bg-white text-slate-900 px-4 py-2 rounded-lg font-bold hover:bg-slate-100 transition-colors">🖨 طباعة الآن</button>
+            <button onClick={() => { setBatchPrinting(false); setBatchPrintData([]); }} className="bg-slate-700 text-white px-4 py-2 rounded-lg font-bold hover:bg-slate-600 transition-colors">✕ إغلاق</button>
           </div>
         </div>
-        {batchPrintData.map((item, pageIdx) => {
-          const student = item.student;
-          const ev = item.evaluation;
-          const sc = ev?.scores || {};
-          const totalScore = currentCriteria.reduce((acc, c) => {
-            const v = sc[c.id];
-            return acc + (typeof v === 'number' ? v : 0);
-          }, 0);
-          const totalMax = currentCriteria.reduce((acc, c) => acc + (c.max || 4), 0);
-          const gradeName = grades.find((g) => g.id === selectedGrade)?.name || '';
-          const subjectName = (globalConfig?.subjects || []).find((s) => s.id === selectedSubject)?.name || '';
-          const evalTypeLabel = ev?.evaluationType === 'unit'
-            ? (globalConfig?.evalTypeTitles?.unit || 'تقييم نهاية الوحدة')
-            : ev?.evaluationType === 'periodic'
-            ? (globalConfig?.evalTypeTitles?.periodic || 'التقويم المرحلي')
-            : (globalConfig?.evalTypeTitles?.final || 'التقويم الختامي');
-          const label = sc._evaluationLabel || '';
-          
-          const category = getCategory(totalScore, totalMax);
 
-          return (
-            <div
-              key={student.id}
-              style={{
-                pageBreakAfter: 'always',
-                breakAfter: 'page',
-                pageBreakInside: 'avoid',
-                fontFamily: 'Cairo, Arial, sans-serif',
-                direction: 'rtl',
-                padding: '0',
-                minHeight: '29.7cm',
-                width: '100%',
-                maxWidth: '100%',
-                boxSizing: 'border-box',
-                display: 'block',
-                overflow: 'hidden',
-                color: '#1e293b',
-                background: 'white',
-                position: 'relative'
-              }}
-            >
-              {/* Background Watermark/Logo */}
-              <div style={{ 
-                position: 'absolute', 
-                top: '55%', 
-                left: '50%', 
-                transform: 'translate(-50%, -50%) rotate(-15deg)', 
-                opacity: 0.04, 
-                fontSize: '180px', 
-                fontWeight: '900', 
-                color: '#1e293b', 
-                zIndex: 0, 
-                pointerEvents: 'none',
-                whiteSpace: 'nowrap'
-              }}>
-                وزارة الثقافة
-              </div>
+        <div style={{ paddingTop: '60px' }}>
+          {batchPrintData.map((item) => {
+            const student = item.student;
+            const ev = item.evaluation;
+            const sc = ev?.scores || {};
+            const totalScore = currentCriteria.reduce((acc, c) => acc + (Number(sc[c.id]) || 0), 0);
+            const totalMax = currentCriteria.length * 4;
+            const gradeName = grades.find((g) => g.id === selectedGrade)?.name || '';
+            const subjectName = (globalConfig?.subjects || []).find((s) => s.id === selectedSubject)?.name || '';
+            const evalTypeLabel = ev?.evaluationType === 'unit' ? 'تقييم نهاية الوحدة' : ev?.evaluationType === 'periodic' ? 'التقويم المرحلي' : 'التقويم الختامي';
 
-              {/* Page Content Container */}
-              <div style={{ flex: 1, padding: '0.5cm 1cm', display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 5, width: '100%', boxSizing: 'border-box' }}>
-                
-                {/* Official Header */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '15px' }}>
-                  <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                       <div style={{ textAlign: 'right' }}>
-                          <div style={{ fontWeight: '900', fontSize: '24px', color: '#0f172a', lineHeight: '1', letterSpacing: '-0.02em' }}>وزارة الثقـــــافة</div>
-                          <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 'bold', marginTop: '2px' }}>Ministry of Culture</div>
-                       </div>
-                       <div style={{ width: '45px', height: '45px', background: '#1e293b', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <Palette className="w-7 h-7 text-white" />
-                       </div>
-                    </div>
-                    <div style={{ fontSize: '13px', fontWeight: '900', color: '#475569', background: '#f8fafc', padding: '6px 16px', borderRadius: '20px', border: '1px solid #e2e8f0', display: 'inline-block', marginTop: '4px' }}>
-                       {evalTypeLabel} — {subjectName}
-                    </div>
+            return (
+              <div key={student.id} className="print-page bg-white p-8 max-w-[21cm] mx-auto mb-8 shadow-lg border border-gray-200" style={{ direction: 'rtl', fontFamily: 'Cairo, sans-serif' }}>
+                <div className="flex justify-between items-center mb-6 border-b-2 border-black pb-4">
+                  <div className="text-right">
+                    <h1 className="text-2xl font-black text-black">وزارة الثقافة</h1>
+                    <p className="text-sm font-bold text-gray-600">مسار الفنون البصرية</p>
                   </div>
-                  <div style={{ textAlign: 'right', fontSize: '12px', color: '#94a3b8', fontWeight: '800', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <div style={{ color: '#64748b' }}>مسار الفنون البصرية</div>
-                    <div style={{ color: '#94a3b8' }}>الصف الدراسي: {gradeName}</div>
+                  <div className="text-center">
+                    <h2 className="text-xl font-black text-black">{evalTypeLabel}</h2>
+                    <p className="text-sm font-bold">{subjectName}</p>
+                  </div>
+                  <div className="text-left">
+                    <p className="text-xs font-bold">التاريخ: {ev?.evaluationDate || new Date().toLocaleDateString('ar-SA')}</p>
+                    <p className="text-xs font-bold">الصف: {gradeName}</p>
                   </div>
                 </div>
 
-                <div style={{ textAlign: 'center', margin: '35px 0' }}>
-                  <h2 style={{ fontSize: '18px', fontWeight: '900', color: '#1e293b' }}>
-                    استمارة تقييم لأنشطة {subjectName}
-                  </h2>
+                <div className="grid grid-cols-2 gap-4 mb-6 bg-gray-50 p-4 border border-gray-200 rounded-lg">
+                  <p className="text-sm font-bold">اسم الطالب: <span className="font-black text-indigo-700">{student.name}</span></p>
+                  <p className="text-sm font-bold">المعلم: <span className="font-black border-b-2 border-gray-400 min-w-[100px] inline-block">{printTeacherName}</span></p>
                 </div>
 
-                {/* Student/Teacher Metadata */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', rowGap: '15px', columnGap: '40px', marginBottom: '25px', fontSize: '13px', color: '#334155', width: '100%' }}>
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <span style={{ fontWeight: '800', whiteSpace: 'nowrap' }}>اسم الطالب / الطالبة:</span>
-                    <span style={{ fontWeight: '900', color: '#000', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{student.name}</span>
-                  </div>
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', minWidth: 0 }}>
-                    <span style={{ fontWeight: '800', whiteSpace: 'nowrap' }}>اسم المعلم / المعلمة:</span>
-                    <span style={{ flex: 1, borderBottom: printTeacherName ? 'none' : '3px dotted #60a5fa', marginBottom: '4px', minWidth: '50px', fontWeight: '900', color: '#000' }}>{printTeacherName}</span>
-                  </div>
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <span style={{ fontWeight: '800', whiteSpace: 'nowrap' }}>التاريخ:</span>
-                    <span style={{ fontWeight: '900', color: '#000', whiteSpace: 'nowrap' }}>{ev?.evaluationDate || new Date().toISOString().split('T')[0]}</span>
-                  </div>
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', minWidth: 0 }}>
-                    <span style={{ fontWeight: '800', whiteSpace: 'nowrap' }}>عنوان الوحدة الدراسية:</span>
-                    {label && <span style={{ color: '#60a5fa', fontWeight: 'bold', whiteSpace: 'nowrap' }}>{label}</span>}
-                    <span style={{ flex: 1, borderBottom: '3px dotted #60a5fa', marginBottom: '4px', minWidth: '20px' }}></span>
-                  </div>
-                </div>
+                <table className="w-full border-collapse border-2 border-black text-[10px]">
+                  <thead>
+                    <tr className="bg-gray-100">
+                      <th className="border-2 border-black p-1 w-8">#</th>
+                      <th className="border-2 border-black p-1 text-right">معيار التقييم</th>
+                      <th className="border-2 border-black p-1 w-12 text-center">دون الهدف<br/>(1)</th>
+                      <th className="border-2 border-black p-1 w-12 text-center">يقترب<br/>(2)</th>
+                      <th className="border-2 border-black p-1 w-12 text-center">حقق<br/>(3)</th>
+                      <th className="border-2 border-black p-1 w-12 text-center bg-indigo-50">يتخطى<br/>(4)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {currentCriteria.map((crit, idx) => {
+                      const score = Number(sc[crit.id]) || 0;
+                      return (
+                        <tr key={crit.id} className="hover:bg-gray-50">
+                          <td className="border-2 border-black p-1 text-center font-bold">{idx + 1}</td>
+                          <td className="border-2 border-black p-1 font-bold text-right leading-tight">{crit.text}</td>
+                          {[1, 2, 3, 4].map(num => (
+                            <td key={num} className={`border-2 border-black p-1 text-center text-base font-black ${num === 4 ? 'bg-indigo-50' : ''}`}>
+                              {score === num ? '✓' : ''}
+                            </td>
+                          ))}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot>
+                    <tr className="bg-gray-100 font-black text-sm">
+                      <td colSpan="2" className="border-2 border-black p-3 text-right">المجموع الكلي</td>
+                      <td colSpan="4" className="border-2 border-black p-3 text-center text-lg">{totalScore} من {totalMax}</td>
+                    </tr>
+                  </tfoot>
+                </table>
 
-                {/* Main Table */}
-                <div style={{ flex: 1 }}>
-                  <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', border: '1px solid #000', fontSize: '12px' }}>
-                    <thead>
-                      <tr style={{ background: '#f8fafc' }}>
-                        <th style={{ border: '1px solid #000', padding: '12px 5px', width: '40px', fontWeight: '900' }}>#</th>
-                        <th style={{ border: '1px solid #000', padding: '12px 15px', textAlign: 'center', fontWeight: '900' }}>المعيار</th>
-                        <th style={{ border: '1px solid #000', padding: '10px 5px', width: '90px', background: '#9ca3af', color: 'white', fontWeight: '900' }}>دون الهدف (1)</th>
-                        <th style={{ border: '1px solid #000', padding: '10px 5px', width: '90px', background: '#60a5fa', color: 'white', fontWeight: '900' }}>يقترب من الهدف (2)</th>
-                        <th style={{ border: '1px solid #000', padding: '10px 5px', width: '90px', background: '#2563eb', color: 'white', fontWeight: '900' }}>حقق الهدف (3)</th>
-                        <th style={{ border: '1px solid #000', padding: '10px 5px', width: '90px', background: '#7c3aed', color: 'white', fontWeight: '900' }}>يتخطى الهدف (4)</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {currentCriteria.map((criterion, idx) => {
-                        const score = Number(sc[criterion.id]);
-                        return (
-                          <tr key={criterion.id}>
-                            <td style={{ border: '1px solid #000', padding: '14px 5px', textAlign: 'center', fontWeight: '900' }}>{idx + 1}</td>
-                            <td style={{ border: '1px solid #000', padding: '14px 15px', fontWeight: '800', lineHeight: '1.5' }}>{criterion.text}</td>
-                            {[1, 2, 3, 4].map(level => (
-                              <td key={level} style={{ border: '1px solid #000', padding: '0', textAlign: 'center' }}>
-                                <div style={{ 
-                                  margin: '0 auto', 
-                                  width: '22px', 
-                                  height: '22px', 
-                                  border: '1px solid #000', 
-                                  display: 'flex', 
-                                  alignItems: 'center', 
-                                  justifyContent: 'center',
-                                  background: 'transparent',
-                                  fontWeight: '900',
-                                  fontSize: '16px',
-                                  color: '#000'
-                                }}>
-                                  {score === level && '✓'}
-                                </div>
-                              </td>
-                            ))}
-                          </tr>
-                        );
-                      })}
-                      {/* Total Score and Evaluation Row */}
-                      <tr style={{ background: '#f1f5f9' }}>
-                        <td colSpan={2} style={{ border: '1px solid #000', padding: '14px 15px', textAlign: 'left', fontWeight: '900', fontSize: '14px' }}>
-                          المجموع الكلي: <span style={{ padding: '0 10px', fontSize: '16px' }}>{totalScore}</span> من {totalMax}
-                        </td>
-                        <td colSpan={4} style={{ border: '1px solid #000', padding: '14px 15px', textAlign: 'center', fontWeight: '900', fontSize: '14px', color: '#1d4ed8' }}>
-                          تقييم الطالب: {category?.label || ''}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Official Footer with Page Number */}
-                <div style={{ marginTop: 'auto', paddingTop: '30px', borderTop: '2px solid #000', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                   <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-                      <div style={{ width: '35px', height: '35px', border: '2px solid #000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '900', fontSize: '16px' }}>
-                        {pageIdx + 1}
-                      </div>
-                      <div style={{ fontSize: '10px', color: '#64748b', fontWeight: 'bold', lineHeight: '1.4' }}>
-                         وزارة الثقـــــافة<br />
-                         Kingdom of Saudi Arabia<br />
-                         Ministry of Culture
-                      </div>
-                   </div>
-                   <div style={{ fontSize: '10px', color: '#64748b', fontWeight: 'bold', textAlign: 'center' }}>
-                      طريق الملك فيصل، الدرعية<br />
-                      P.O. Box 3424, Riyadh 13711
-                   </div>
-                   <div style={{ fontSize: '10px', color: '#64748b', fontWeight: 'bold', textAlign: 'left' }}>
-                      moc.gov.sa<br />
-                      +966 11 836 3333 ف<br />
-                      +966 11 836 3352 هـ
-                   </div>
+                <div className="mt-6 flex justify-between items-end">
+                  <div className="text-xs font-bold text-gray-400">نظام تقييم الفنون البصرية © 2026</div>
+                  <div className="text-center">
+                    <div className="w-32 h-16 border-2 border-dashed border-gray-300 rounded-lg mb-1"></div>
+                    <p className="text-[10px] font-bold">ختم المدرسة</p>
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     )}
-
-    </>
-  );
+  </div>
+);
 }
+
+export default App;
