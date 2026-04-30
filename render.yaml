@@ -3,11 +3,11 @@ services:
     name: visual-arts-portal
     runtime: node
     plan: free
-    buildCommand: npm install && npm run build && npx prisma db push
+    buildCommand: npm install && npm run build
     startCommand: npm start
     envVars:
       - key: DATABASE_URL
-        value: postgresql://postgres.jkbyuqmyxvtdactidyxe:.Bap!4yn*rWkfnC@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres?pgbouncer=true
+        value: "postgresql://postgres.jkbyuqmyxvtdactidyxe:.Bap!4yn*rWkfnC@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres?pgbouncer=true"
       - key: NODE_VERSION
         value: 20
       - key: PORT
