@@ -264,11 +264,7 @@ async function seedDefaultConfig() {
       });
       console.log('Default system configuration seeded.');
     } else {
-      await prisma.systemConfig.update({
-        where: { id: configRow.id },
-        data: { config: JSON.stringify(defaultData) }
-      });
-      console.log('System configuration updated with new assessment criteria.');
+      console.log('System configuration already exists. Skipping seed.');
     }
   } catch (error) {
     console.error('Error seeding config:', error);
@@ -455,27 +451,6 @@ app.get('*', (req, res) => {
   });
 });
 
-async function initializeConfig() {
-  try {
-    const configRow = await prisma.systemConfig.findFirst();
-    if (!configRow) {
-      await prisma.systemConfig.create({
-        data: { config: JSON.stringify(defaultData) }
-      });
-      console.log('System configuration initialized with default data.');
-    } else {
-      await prisma.systemConfig.update({
-        where: { id: configRow.id },
-        data: { config: JSON.stringify(defaultData) }
-      });
-      console.log('System configuration FORCE UPDATED with new assessment criteria.');
-    }
-  } catch (error) {
-    console.error('Failed to initialize configuration:', error);
-  }
-}
-
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
-  initializeConfig();
 });
