@@ -279,7 +279,8 @@ export default function App() {
   };
 
   const handleBack = () => {
-    if (step === 'subject') setStep('grade');
+    if (step === 'teacher') setStep('grade');
+    else if (step === 'subject') setStep('teacher');
     else if (step === 'type') setStep('subject');
     else if (step === 'student') setStep('type');
     else if (step === 'history') setStep('student');
@@ -391,7 +392,7 @@ export default function App() {
                 key={grade.id}
                 onClick={() => {
                   setSelectedGrade(grade.id);
-                  setStep('subject');
+                  setStep('teacher');
                 }}
                 className="group p-8 bg-white border border-gray-100 rounded-3xl shadow-sm hover:shadow-xl hover:border-indigo-100 transition-all text-right flex items-center justify-between"
               >
@@ -413,6 +414,49 @@ export default function App() {
                 <ChevronRight className="w-6 h-6 text-gray-300 group-hover:text-indigo-600 group-hover:translate-l-2 transition-all rtl:rotate-180" />
               </button>
             ))}
+          </motion.div>
+        )}
+        {/* Step 1.5: Teacher Name Input */}
+        {step === 'teacher' && (
+          <motion.div 
+            key="step-teacher"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="max-w-md mx-auto space-y-6"
+          >
+            <div className="text-center mb-8">
+              <h2 className="text-2xl font-black text-gray-900 mb-2">اسم المعلم / المعلمة</h2>
+              <p className="text-gray-500 font-medium">يرجى إدخال الاسم ليظهر في تقارير التقييم</p>
+            </div>
+            
+            <div className="relative group">
+              <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
+                <Users className="w-6 h-6 text-gray-400 group-focus-within:text-indigo-500 transition-colors" />
+              </div>
+              <input 
+                type="text" 
+                placeholder="اكتب الاسم هنا..." 
+                value={printTeacherName}
+                onChange={e => setPrintTeacherName(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && printTeacherName.trim() && setStep('subject')}
+                autoFocus
+                className="w-full bg-white border-2 border-gray-100 rounded-2xl pr-12 pl-4 py-5 text-lg font-bold outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-sm group-hover:border-gray-200"
+              />
+            </div>
+
+            <button
+              onClick={() => setStep('subject')}
+              disabled={!printTeacherName.trim()}
+              className={`w-full py-4 rounded-2xl font-black text-lg transition-all flex items-center justify-center gap-3 ${
+                printTeacherName.trim() 
+                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:-translate-y-1' 
+                  : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              }`}
+            >
+              متابعة لاختيار المقررات
+              <ChevronRight className="w-6 h-6 rtl:rotate-180" />
+            </button>
           </motion.div>
         )}
 
@@ -1051,8 +1095,8 @@ export default function App() {
             <input 
                type="text" 
                placeholder="اسم المعلم..." 
-               value={printTeacherName} 
-               onChange={e => setPrintTeacherName(e.target.value)}
+               value={teacherName} 
+               onChange={e => setTeacherName(e.target.value)}
                style={{ padding: '6px 12px', borderRadius: '6px', color: '#000', border: 'none', width: '200px' }}
             />
           </div>
@@ -1092,7 +1136,7 @@ export default function App() {
 
                 <div className="grid grid-cols-2 gap-4 mb-6 bg-gray-50 p-4 border border-gray-200 rounded-lg">
                   <p className="text-sm font-bold">اسم الطالب: <span className="font-black text-indigo-700">{student.name}</span></p>
-                  <p className="text-sm font-bold">المعلم: <span className="font-black border-b-2 border-gray-400 min-w-[100px] inline-block">{printTeacherName}</span></p>
+                  <p className="text-sm font-bold">المعلم: <span className="font-black border-b-2 border-gray-400 min-w-[100px] inline-block">{teacherName}</span></p>
                 </div>
 
                 <table className="w-full border-collapse border-2 border-black text-[10px]">
