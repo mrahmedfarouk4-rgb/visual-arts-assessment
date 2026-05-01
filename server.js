@@ -8,10 +8,12 @@ dotenv.config();
 
 let prisma;
 try {
-  prisma = new PrismaClient();
-  console.log('Database Client Initialized');
+  prisma = new PrismaClient({
+    log: ['query', 'info', 'warn', 'error'],
+  });
+  console.log('Prisma Client Instance Created');
 } catch (e) {
-  console.error('FAILED to initialize Prisma Client:', e.message);
+  console.error('CRITICAL: Prisma Client failed to instantiate:', e.message);
 }
 
 const app = express();
@@ -21,13 +23,17 @@ app.use(cors());
 app.use(express.json());
 
 // Serve static frontend files
-app.use(express.static(path.join(process.cwd(), 'dist')));
+const distPath = path.join(process.cwd(), 'dist');
+app.use(express.static(distPath));
 
 app.get('/api/health', async (req, res) => {
   try {
+    if (!prisma) throw new Error('Prisma client not initialized');
+    await prisma.$connect();
     await prisma.$queryRaw`SELECT 1`;
-    res.json({ status: 'ok', database: 'connected' });
+    res.json({ status: 'ok', database: 'connected', timestamp: new Date().toISOString() });
   } catch (e) {
+    console.error('Health Check Failed:', e.message);
     res.status(500).json({ status: 'error', database: 'disconnected', error: e.message });
   }
 });
@@ -241,34 +247,10 @@ const defaultData = {
   }
 };
 
-// Seeding function
-async function seedDefaultConfig() {
-  try {
-    const configRow = await prisma.systemConfig.findFirst();
-    if (!configRow) {
-      await prisma.systemConfig.create({
-        data: {
-          config: JSON.stringify(defaultData)
-        }
-      });
-      console.log('Default system configuration seeded.');
-    } else {
-      await prisma.systemConfig.update({
-        where: { id: configRow.id },
-        data: { config: JSON.stringify(defaultData) }
-      });
-      console.log('System configuration updated with new assessment criteria.');
-    }
-  } catch (error) {
-    console.error('Error seeding config:', error);
-  }
-}
-
-seedDefaultConfig().catch(console.error);
-
 // Routes
 app.get('/api/config', async (req, res) => {
   try {
+    if (!prisma) return res.json(defaultData);
     const configRow = await prisma.systemConfig.findFirst();
     if (configRow) {
       res.json(JSON.parse(configRow.config));
@@ -276,8 +258,8 @@ app.get('/api/config', async (req, res) => {
       res.json(defaultData);
     }
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Internal server error', details: error.message });
+    console.error('ERROR /api/config:', error);
+    res.json(defaultData); // Fallback to default on error
   }
 });
 
