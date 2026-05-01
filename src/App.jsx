@@ -1095,8 +1095,8 @@ export default function App() {
             <input 
                type="text" 
                placeholder="اسم المعلم..." 
-               value={teacherName} 
-               onChange={e => setTeacherName(e.target.value)}
+               value={printTeacherName} 
+               onChange={e => setPrintTeacherName(e.target.value)}
                style={{ padding: '6px 12px', borderRadius: '6px', color: '#000', border: 'none', width: '200px' }}
             />
           </div>
@@ -1136,7 +1136,7 @@ export default function App() {
 
                 <div className="grid grid-cols-2 gap-4 mb-6 bg-gray-50 p-4 border border-gray-200 rounded-lg">
                   <p className="text-sm font-bold">اسم الطالب: <span className="font-black text-indigo-700">{student.name}</span></p>
-                  <p className="text-sm font-bold">المعلم: <span className="font-black border-b-2 border-gray-400 min-w-[100px] inline-block">{teacherName}</span></p>
+                  <p className="text-sm font-bold">المعلم: <span className="font-black border-b-2 border-gray-400 min-w-[100px] inline-block">{printTeacherName}</span></p>
                 </div>
 
                 <table className="w-full border-collapse border-2 border-black text-[10px]">
