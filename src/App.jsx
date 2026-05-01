@@ -225,9 +225,12 @@ export default function App() {
       alert('يجب تفعيل وضع التعديل بكلمة المرور للقيام بهذه العملية');
       return;
     }
-    if (!newStudentName.trim()) return;
+    if (!newStudentName.trim()) {
+      alert('الرجاء إدخال اسم الطالب');
+      return;
+    }
     if (!selectedGrade) {
-      alert('الرجاء اختيار الصف أولاً');
+      alert('الرجاء اختيار الصف أولاً من القائمة المنسدلة');
       return;
     }
     try {
@@ -236,11 +239,18 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: newStudentName, gradeId: selectedGrade })
       });
-      const data = await res.json();
-      setStudents([...students, data]);
-      setNewStudentName('');
+      if (res.ok) {
+        const data = await res.json();
+        setStudents(prev => [...prev, data]);
+        setNewStudentName('');
+        alert('تمت إضافة الطالب بنجاح');
+      } else {
+        const err = await res.json();
+        alert(`فشل الحفظ: ${err.details || err.error || 'خطأ غير معروف'}`);
+      }
     } catch (e) {
       console.error(e);
+      alert('حدث خطأ في الاتصال بالسيرفر');
     }
   };
 
@@ -249,16 +259,22 @@ export default function App() {
       alert('يجب تفعيل وضع التعديل بكلمة المرور للقيام بهذه العملية');
       return;
     }
-    if (!window.confirm('هل أنت متأكد من حذف هذا الطالب؟')) return;
+    if (!window.confirm('هل أنت متأكد من حذف هذا الطالب نهائياً؟')) return;
     try {
-      await fetch(`/api/students/${id}`, { method: 'DELETE' });
-      setStudents(students.filter(s => s.id !== id));
-      if (selectedStudent?.id === id) {
-        setSelectedStudent(null);
-        if (step === 'evaluation') setStep('student');
+      const res = await fetch(`/api/students/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setStudents(prev => prev.filter(s => s.id !== id));
+        if (selectedStudent?.id === id) {
+          setSelectedStudent(null);
+          if (step === 'evaluation') setStep('student');
+        }
+        alert('تم حذف الطالب بنجاح');
+      } else {
+        alert('فشل الحذف من السيرفر');
       }
     } catch (e) {
       console.error(e);
+      alert('خطأ في الاتصال أثناء الحذف');
     }
   };
 
