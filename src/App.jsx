@@ -325,6 +325,38 @@ export default function App() {
     }
   };
 
+  const deleteEvaluation = async (id) => {
+    if (!isEditMode) {
+      const pwd = window.prompt('حذف التقييم يتطلب وضع التعديل. أدخل كلمة المرور:');
+      if (pwd === '01020') {
+        setIsEditMode(true);
+      } else {
+        if (pwd !== null) alert('كلمة المرور غير صحيحة');
+        return;
+      }
+    }
+    if (!window.confirm('هل أنت متأكد من رغبتك في حذف أو مسح هذا التقييم نهائياً؟')) return;
+    try {
+      const res = await fetch(`/api/evaluations/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setPastEvaluations(prev => prev.filter(ev => ev.id !== id));
+        setHistorySelectedEvals(prev => prev.filter(eid => eid !== id));
+        if (evaluationId === id) {
+          setEvaluationId(null);
+          setScores({});
+          setEvaluationLabel('');
+        }
+        await fetchStudents();
+        alert('تم حذف التقييم بنجاح');
+      } else {
+        alert('فشل حذف التقييم من السيرفر');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('خطأ في الاتصال أثناء حذف التقييم');
+    }
+  };
+
 
 
   const reset = () => {
@@ -1081,6 +1113,18 @@ export default function App() {
                     >
                       <Printer className="w-4 h-4" />
                     </button>
+
+                    {/* Delete / Clear Evaluation Button */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteEvaluation(ev.id);
+                      }}
+                      className="p-2.5 mr-1.5 text-red-500 hover:text-white hover:bg-red-600 bg-red-50 rounded-xl transition-all shadow-sm shrink-0"
+                      title="حذف ومسح هذا التقييم"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 );
               })}
@@ -1286,6 +1330,20 @@ export default function App() {
               >
                 {isEditMode ? 'إلغاء' : 'رجوع'}
               </button>
+
+              {evaluationId && isEditMode && (
+                <button
+                  onClick={async () => {
+                    await deleteEvaluation(evaluationId);
+                    setStep('history');
+                  }}
+                  className="py-4 px-4 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-2xl transition-all text-sm flex items-center justify-center gap-1.5"
+                  title="حذف هذا التقييم نهائياً"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>حذف التقييم</span>
+                </button>
+              )}
 
               {!isEditMode && (
                 <div className="flex-[2.5] bg-amber-50 border border-amber-200 rounded-2xl p-2 flex items-center justify-center gap-2">

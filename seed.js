@@ -89,6 +89,15 @@ async function seed() {
     console.log(`✓ Seeded ${count} evaluations`);
   }
 
+  // 4. Synchronize PostgreSQL autoincrement sequences to prevent unique constraint errors
+  try {
+    await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"Student"', 'id'), coalesce(max(id), 1) + 1, false) FROM "Student"`);
+    await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"Evaluation"', 'id'), coalesce(max(id), 1) + 1, false) FROM "Evaluation"`);
+    console.log('✓ PostgreSQL sequences synchronized');
+  } catch (err) {
+    console.log('Note: Sequence sync skipped (not PostgreSQL or table empty):', err.message);
+  }
+
   console.log('--- Seed Completed Successfully ---');
 }
 

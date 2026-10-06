@@ -6919,6 +6919,7 @@ const defaultData = {
 
 
 
+
 // Routes
 app.get('/api/config', async (req, res) => {
   try {
@@ -6987,6 +6988,17 @@ app.delete('/api/students/:id', async (req, res) => {
     await prisma.student.delete({ where: { id } });
     res.json({ message: 'Student deleted successfully' });
   } catch (error) {
+    res.status(500).json({ error: 'Internal server error', details: error.message });
+  }
+});
+
+app.delete('/api/evaluations/:id', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    await prisma.evaluation.delete({ where: { id } });
+    res.json({ message: 'تم حذف التقييم بنجاح' });
+  } catch (error) {
+    console.error(error);
     res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 });
@@ -7176,6 +7188,14 @@ app.get('*', (req, res) => {
 
 async function initializeConfig() {
   try {
+    // Synchronize PostgreSQL sequences on startup to ensure auto-increment works after manual seeds
+    try {
+      await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"Evaluation"', 'id'), coalesce(max(id), 1) + 1, false) FROM "Evaluation"`);
+      await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"Student"', 'id'), coalesce(max(id), 1) + 1, false) FROM "Student"`);
+    } catch (e) {
+      // Ignored if SQLite or tables are empty
+    }
+
     const configRow = await prisma.systemConfig.findFirst();
     if (!configRow) {
       await prisma.systemConfig.create({
