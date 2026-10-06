@@ -1,14 +1,18 @@
 services:
   - type: web
-    name: visual-arts-portal
-    runtime: node
+    name: visual-arts-assessment
+    env: node
     plan: free
     buildCommand: npm install && npm run build
-    startCommand: npm start
+    startCommand: npm run deploy
     envVars:
       - key: DATABASE_URL
-        value: "postgresql://postgres.jkbyuqmyxvtdactidyxe:.Bap%214yn%2AWkfnC@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1"
-      - key: NODE_VERSION
-        value: 20
-      - key: PORT
-        value: 8000
+        fromDatabase:
+          name: visual-arts-db
+          property: connectionString
+      - key: NODE_ENV
+        value: production
+
+databases:
+  - name: visual-arts-db
+    plan: free
