@@ -7,6 +7,9 @@
     "dev": "vite",
     "build": "vite build && prisma generate",
     "start": "node server.js",
+    "db:push": "prisma db push",
+    "db:seed": "node seed.js",
+    "deploy": "prisma db push && node seed.js && node server.js",
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "lint": "echo No linting"
